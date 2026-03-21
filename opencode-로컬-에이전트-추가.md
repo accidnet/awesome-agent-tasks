@@ -1,4 +1,5 @@
-다음의 링크를 참고하여 https://opencode.ai/docs/agents/#markdown 현재 경로에 에이전트를 하나 만들어줘.
+다음의 링크를 참고하여 현재 경로에 에이전트를 하나 만들어줘.
+- 링크: https://opencode.ai/docs/agents/#markdown
 
 채워넣어야하는 내용을 사용자에게 하나씩 입력 받고 최종적으로 에이전트를 만들면 돼.
 
