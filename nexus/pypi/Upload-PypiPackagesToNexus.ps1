@@ -1,14 +1,17 @@
 <#
 .SYNOPSIS
-Uploads Python package artifacts in a wheelhouse directory to a Nexus PyPI repository.
+wheelhouse 폴더의 Python 패키지 파일을 Nexus PyPI 저장소에 업로드한다.
 
 .DESCRIPTION
-This script is intended for an internal network where the package artifacts were
-already downloaded on an external network with "pip download".
+외부망에서 "pip download"로 미리 내려받은 패키지 파일을 내부망 Nexus에
+업로드할 때 사용하는 스크립트다.
 
-It uploads .whl, .tar.gz, and .zip files by calling "python -m twine upload".
-Credentials can be passed with PSCredential or provided through TWINE_USERNAME
-and TWINE_PASSWORD environment variables.
+".whl", ".tar.gz", ".zip" 파일을 찾아 "python -m twine upload"로 업로드한다.
+인증 정보는 PSCredential로 전달하거나 TWINE_USERNAME, TWINE_PASSWORD 환경
+변수로 제공할 수 있다.
+
+이미 Nexus에 있는 파일은 기본으로 건너뛴다. 기존 파일 업로드를 다시
+시도하려면 -OverwriteExisting 옵션을 사용한다.
 
 .EXAMPLE
 .\Upload-PypiPackagesToNexus.ps1 `
@@ -39,7 +42,7 @@ param(
     [string]$Python = "python",
 
     [Parameter()]
-    [switch]$SkipExisting,
+    [switch]$OverwriteExisting,
 
     [Parameter()]
     [switch]$DryRun
@@ -88,16 +91,16 @@ $packages = Get-ChildItem -LiteralPath $wheelhouse -File |
     Sort-Object Name
 
 if (-not $packages) {
-    throw "No uploadable Python package files were found in: $wheelhouse"
+    throw "업로드 가능한 Python 패키지 파일을 찾지 못했습니다: $wheelhouse"
 }
 
-Write-Host "Nexus PyPI repository: $RepositoryUrl"
-Write-Host "Wheelhouse: $wheelhouse"
-Write-Host "Upload file count: $($packages.Count)"
+Write-Host "Nexus PyPI 저장소: $RepositoryUrl"
+Write-Host "wheelhouse 경로: $wheelhouse"
+Write-Host "업로드 대상 파일 수: $($packages.Count)"
 
 if ($DryRun) {
     Write-Host ""
-    Write-Host "Dry run only. Files that would be uploaded:"
+    Write-Host "Dry run 모드입니다. 실제 업로드는 하지 않고 대상 파일만 표시합니다:"
     $packages | ForEach-Object { Write-Host " - $($_.Name)" }
     exit 0
 }
@@ -108,21 +111,21 @@ if ($Credential) {
 }
 
 if (-not $env:TWINE_USERNAME) {
-    throw "Username was not provided. Pass -Credential or set TWINE_USERNAME."
+    throw "사용자명이 없습니다. -Credential을 전달하거나 TWINE_USERNAME을 설정하세요."
 }
 
 if (-not $env:TWINE_PASSWORD) {
-    throw "Password was not provided. Pass -Credential or set TWINE_PASSWORD."
+    throw "비밀번호가 없습니다. -Credential을 전달하거나 TWINE_PASSWORD를 설정하세요."
 }
 
 if (-not (Test-PythonModule -PythonCommand $Python -ModuleName "twine")) {
     throw @"
-The Python module 'twine' is not available.
+Python 모듈 'twine'을 사용할 수 없습니다.
 
-Install it in the internal network Python environment, or upload the twine package
-and its dependencies to the environment first.
+내부망 Python 환경에 twine을 먼저 설치하거나, twine 패키지와 의존성을
+내부망 환경에 먼저 업로드/설치하세요.
 
-Example:
+예시:
   $Python -m pip install twine
 "@
 }
@@ -133,7 +136,7 @@ $twineArgs = @(
     "--repository-url", $RepositoryUrl
 )
 
-if ($SkipExisting) {
+if (-not $OverwriteExisting) {
     $twineArgs += "--skip-existing"
 }
 
@@ -142,7 +145,7 @@ $twineArgs += $packages.FullName
 & $Python @twineArgs
 
 if ($LASTEXITCODE -ne 0) {
-    throw "twine upload failed with exit code $LASTEXITCODE."
+    throw "twine upload가 실패했습니다. 종료 코드: $LASTEXITCODE"
 }
 
-Write-Host "Upload completed."
+Write-Host "업로드가 완료되었습니다."
