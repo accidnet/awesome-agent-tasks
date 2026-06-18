@@ -1,0 +1,40 @@
+내부망에서 넥서스에 파이썬 패키지 업로드하는 방법
+
+1. 내부망 Python에 twine이 있는지 확인한다.
+
+python -m twine --version
+
+없으면 내부망 환경에 맞게 twine을 설치한다.
+
+python -m pip install twine
+
+2. 업로드 대상 파일을 먼저 확인한다.
+
+.\Upload-PypiPackagesToNexus.ps1 `
+  -RepositoryUrl "https://nexus.example.com/repository/pypi-hosted/" `
+  -WheelhousePath ".\wheelhouse" `
+  -DryRun
+
+3. Nexus 계정 정보를 입력받는다.
+
+$cred = Get-Credential
+
+4. 실제 업로드를 실행한다.
+
+.\Upload-PypiPackagesToNexus.ps1 `
+  -RepositoryUrl "https://nexus.example.com/repository/pypi-hosted/" `
+  -WheelhousePath ".\wheelhouse" `
+  -Credential $cred
+
+이미 업로드된 파일을 건너뛰려면 -SkipExisting 옵션을 추가한다.
+
+.\Upload-PypiPackagesToNexus.ps1 `
+  -RepositoryUrl "https://nexus.example.com/repository/pypi-hosted/" `
+  -WheelhousePath ".\wheelhouse" `
+  -Credential $cred `
+  -SkipExisting
+
+참고:
+- 업로드 URL은 보통 /repository/pypi-hosted/ 형식이다.
+- 설치용 simple URL과 업로드 URL은 다르다.
+- 업로드 대상 파일은 .whl, .tar.gz, .zip 형식이다.
